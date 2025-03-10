@@ -1,5 +1,6 @@
 import time
 import sys
+import fitz  # PyMuPDF for PDF reading
 from langchain_ollama import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
 from rich.console import Console
@@ -11,8 +12,12 @@ console = Console()
 
 # Chat prompt template
 template = """
-Answer the question below.
-Here is the conversation history: {context}
+Use the provided document content to answer the question.
+Here is the document content:
+{document_content}
+
+Here is the conversation history:
+{context}
 
 Question: {question}
 
@@ -29,6 +34,12 @@ chain = prompt | model
 # Max number of exchanges to keep in memory
 MAX_CONTEXT_LENGTH = 5
 
+def extract_text_from_pdf(pdf_path):
+    """Extracts text from a PDF file."""
+    doc = fitz.open(pdf_path)
+    text = "\n".join(page.get_text() for page in doc)
+    return text[:5000]  # Truncate to first 5000 characters to avoid too much context
+
 def print_typing():
     """Simulates a typing indicator in the terminal."""
     for _ in range(3):
@@ -37,14 +48,13 @@ def print_typing():
         time.sleep(0.5)
     print("")
 
-def handle_conversation():
-    """Handles the conversation loop."""
+def handle_conversation(pdf_text):
+    """Handles the conversation loop with extracted PDF text as context."""
     context = []
     console.print("[bold cyan]Welcome to the AI ChatBot![/bold cyan] Type 'exit' to quit.")
 
     while True:
         user_input = Prompt.ask("[bold yellow]You[/bold yellow]")
-        # user_input = """ """
 
         if user_input.lower() == "exit":
             console.print("[bold red]Goodbye![/bold red] 👋")
@@ -54,8 +64,8 @@ def handle_conversation():
         console.print("[bold green]Bot is typing[/bold green]", end="")
         print_typing()
 
-        # Generate response
-        result = chain.invoke({"context": "\n".join(context), "question": user_input})
+        # Generate response using PDF text as context
+        result = chain.invoke({"document_content": pdf_text, "context": "\n".join(context), "question": user_input})
 
         # Display bot response with markdown support
         console.print(Markdown(f"**Bot:** {result}"))
@@ -66,4 +76,6 @@ def handle_conversation():
         context = context[-(MAX_CONTEXT_LENGTH * 2):]  # Keep only the last N exchanges
 
 if __name__ == "__main__":
-    handle_conversation()
+    pdf_path = "pdf_file.pdf"  # Change this to your PDF file path
+    pdf_text = extract_text_from_pdf(pdf_path)
+    handle_conversation(pdf_text)

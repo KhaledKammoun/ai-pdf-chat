@@ -7,4 +7,5 @@
 3. Install dependencies: `pip install -r requirements.txt`
    3.1. NB. or you can install them by writing these lines on terminal :
    `pip install langchain langchain-ollama ollama`
-4. Run the development server: `python app.py`
+4. Run the following commande : `ollama serve`
+5. Run the development server: `python app.py`
